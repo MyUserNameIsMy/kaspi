@@ -9,7 +9,7 @@ export abstract class RootAbstractEntity extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @CreateDateColumn({ select: false })
+  @CreateDateColumn({ select: true })
   created_at: Date;
 
   @UpdateDateColumn({ select: false })

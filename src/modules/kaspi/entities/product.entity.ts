@@ -2,26 +2,32 @@ import { RootAbstractEntity } from '../../../database/entities/root-abstract.ent
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { FileEntity } from './file.entity';
 
-@Entity('products')
+@Entity('product_names')
 export class ProductEntity extends RootAbstractEntity {
   @Column()
   name: string;
 
-  @Column()
-  price: string;
+  @Column({ type: 'float', nullable: true })
+  kaspi_price: number;
 
-  @Column()
-  kaspi_url: string;
+  @Column({ type: 'int', nullable: true })
+  rating: number;
 
-  @Column({ type: 'timestamptz' })
-  created_time: Date;
+  @Column({ type: 'int', nullable: true })
+  review_count: number;
 
-  @Column()
-  kaspi_id: string;
+  @Column({ nullable: true })
+  kaspi_link: string;
 
-  @Column({ type: 'jsonb', nullable: true })
-  details: string;
+  @Column({ type: 'int', nullable: true })
+  suppliers_count: number;
 
-  @ManyToOne(() => FileEntity, (file) => file.products)
+  @Column({ type: 'text', array: true, nullable: true })
+  suppliers_array: string[];
+
+  @Column({ type: 'float', default: 0 })
+  price: number;
+
+  @ManyToOne(() => FileEntity, (file) => file.product_names)
   file: FileEntity;
 }
