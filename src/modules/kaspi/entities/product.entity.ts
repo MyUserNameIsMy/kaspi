@@ -2,7 +2,7 @@ import { RootAbstractEntity } from '../../../database/entities/root-abstract.ent
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { FileEntity } from './file.entity';
 
-@Entity('product_names')
+@Entity('products')
 export class ProductEntity extends RootAbstractEntity {
   @Column()
   name: string;
@@ -20,14 +20,14 @@ export class ProductEntity extends RootAbstractEntity {
   kaspi_link: string;
 
   @Column({ type: 'int', nullable: true })
-  suppliers_count: number;
+  merchants_count: number;
 
-  @Column({ type: 'text', array: true, nullable: true })
-  suppliers_array: string[];
+  @Column({ type: 'jsonb', nullable: true })
+  merchants_array: string;
 
   @Column({ type: 'float', default: 0 })
   price: number;
 
-  @ManyToOne(() => FileEntity, (file) => file.product_names)
+  @ManyToOne(() => FileEntity, (file) => file.products, { onDelete: 'CASCADE' })
   file: FileEntity;
 }

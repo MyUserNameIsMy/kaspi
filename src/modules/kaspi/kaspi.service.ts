@@ -2,13 +2,24 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import readXlsxFile from 'read-excel-file/node';
-import { spreadsheetSchema } from './schemas/spreadsheet.schema';
+import {
+  spreadsheetSchema,
+  writeFileSchema,
+} from './schemas/spreadsheet.schema';
 import { FileEntity } from './entities/file.entity';
 import { ProductEntity } from './entities/product.entity';
 import { ProductUpdateRequestDto } from './dto/product.request.dto';
+import * as distance from 'jaro-winkler';
+import writeXlsxFile from 'write-excel-file/node';
 
 @Injectable()
 export class KaspiService {
+  HEADERS = {
+    'Content-Type': 'application/json',
+    'User-Agent':
+      'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/111.0',
+    Referer: 'https://kaspi.kz/shop',
+  };
   constructor(private readonly httpService: HttpService) {}
 
   findClosestNextValue(array: number[], target: number) {
@@ -55,6 +66,19 @@ export class KaspiService {
     return await FileEntity.find();
   }
 
+  async findOne(file_id: number) {
+    return await FileEntity.findOne({
+      relations: ['products'],
+      where: { id: file_id },
+    });
+  }
+
+  async deleteFile(file_id: number) {
+    const file = await this.findOne(file_id);
+    if (!file) throw new BadRequestException();
+    return await file.remove();
+  }
+
   async findOneById(file_id: number, product_id = 1) {
     if (product_id == -1) return { message: 'Finished' };
     const product_names = await ProductEntity.find({
@@ -84,43 +108,91 @@ export class KaspiService {
       where: { id: current_id },
     });
 
-    const products = await this.getProducts(entry.name);
-
+    const product = await this.getProduct(entry.name);
     return {
-      products,
+      product,
       entry,
       next_id,
     };
   }
 
-  async getProducts(name: string) {
+  async getProduct(name: string) {
     const search_result_by_name = await this.findByName(name);
+    let product;
+    try {
+      const res = await lastValueFrom(
+        this.httpService.get(search_result_by_name.kaspi_link, {
+          headers: this.HEADERS,
+        }),
+      );
+      const match = res.data.match(/BACKEND\.components\.item\s*=\s*({.*?})\n/);
+      const data = JSON.parse(match[1]);
+      const { card, galleryImages, specifications } = data;
+      const merchants_data = await this.findMerchants(card.id);
+      card['kaspi_price'] = search_result_by_name.kaspi_price;
+      card['kaspi_link'] = search_result_by_name.kaspi_link;
+      product = { card, galleryImages, specifications, merchants_data };
+    } catch (err) {
+      throw new BadRequestException('Error while getting product from kaspi');
+    }
+
+    return product;
+  }
+
+  async findByName(name: string) {
+    let product = null;
+    try {
+      const URL = `https://kaspi.kz/yml/product-view/pl/filters?text=${name}`;
+      const res = await lastValueFrom(
+        this.httpService.get(URL, { headers: this.HEADERS }),
+      );
+      product = res.data?.data?.cards?.slice(0, 1).flat();
+    } catch (err) {
+      if (err.message.code === 'ETIMEDOUT') {
+        Logger.error(`ETIMEDOUT for search${name}`);
+      }
+    }
+
+    if (!product) return null;
+    return {
+      search_name: name,
+      kaspi_name: product[0]?.title,
+      kaspi_price: product[0]?.unitPrice,
+      kaspi_link: product[0]?.shopLink,
+      created_time: product[0]?.createdTime,
+      kaspi_id: product[0]?.id,
+    };
+  }
+  async findMerchants(kaspi_product_code: string) {
     const headers = {
       'Content-Type': 'application/json',
       'User-Agent':
         'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/111.0',
       Referer: 'https://kaspi.kz/shop',
     };
-    const products = [];
-    for (const item of search_result_by_name) {
-      try {
-        const res = await lastValueFrom(
-          this.httpService.get(item.kaspi_url, { headers }),
-        );
-        const match = res.data.match(
-          /BACKEND\.components\.item\s*=\s*({.*?})\n/,
-        );
-        const data = JSON.parse(match[1]);
-        const { card, galleryImages, specifications } = data;
-        products.push({ card, galleryImages, specifications });
-      } catch (err) {
-        throw new BadRequestException('Error while getting product from kaspi');
+    const body = JSON.stringify({
+      cityId: '750000000',
+      sort: true,
+      zoneId: 'Magnum_ZONE5',
+      installationId: '-1',
+    });
+
+    const merchants = [];
+    let merchants_count = 0;
+    try {
+      const URL = `https://kaspi.kz/yml/offer-view/offers/${kaspi_product_code}`;
+      const res = await lastValueFrom(
+        this.httpService.post(URL, body, { headers }),
+      );
+      merchants.push(res.data?.offers);
+      merchants_count = res.data?.offersCount;
+    } catch (err) {
+      if (err.message.code === 'ETIMEDOUT') {
+        Logger.error('Time');
       }
     }
-
-    return products;
+    return { merchants_count, merchants: merchants.flat() };
   }
-
   async parse(file: Express.Multer.File) {
     const res = [];
     await readXlsxFile(file.path, {
@@ -130,39 +202,10 @@ export class KaspiService {
           (row) => row.filter((column) => column !== null).length > 0,
         );
       },
-    }).then(({ rows, errors }) => {
+    }).then(({ rows }) => {
       res.push(...rows);
     });
     return res;
-  }
-
-  async findByName(name: string) {
-    const headers = {
-      'Content-Type': 'application/json',
-      'User-Agent':
-        'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/111.0',
-      Referer: 'https://kaspi.kz/shop',
-    };
-    const products = [];
-    try {
-      const URL = `https://kaspi.kz/yml/product-view/pl/filters?text=${name}`;
-      const res = await lastValueFrom(this.httpService.get(URL, { headers }));
-      products.push(res.data?.data?.cards.slice(0, 3));
-    } catch (err) {
-      if (err.message.code === 'ETIMEDOUT') {
-        Logger.error('Time');
-      }
-    }
-
-    return products.flat().map((item) => {
-      return {
-        name: item.title,
-        price: item.unitPrice,
-        kaspi_url: item.shopLink,
-        created_time: item.createdTime,
-        kaspi_id: item.id,
-      };
-    });
   }
   async parseAndSave(file: Express.Multer.File) {
     const names = await this.parse(file);
@@ -170,6 +213,7 @@ export class KaspiService {
     const fileEntity = new FileEntity();
     fileEntity.path = `./uploads/${file.filename}`;
     fileEntity.filename = file.originalname;
+    fileEntity.product_found_count = names.length;
     await fileEntity.save();
     const products: ProductEntity[] = [];
 
@@ -184,14 +228,53 @@ export class KaspiService {
     return await ProductEntity.save(products);
   }
 
+  async filterFile(file_id: number) {
+    const file = await this.findOne(file_id);
+    let res = [];
+
+    for (const item of file?.products) {
+      const product = await this.findByName(item.name);
+      product['price'] = item.price;
+      product['product_id'] = item.id;
+      res.push(product);
+    }
+
+    res.filter((item) => {
+      if (!item) return false;
+      const similarity = distance(item.kaspi_name, item.search_name, {
+        caseSensitive: false,
+      });
+      return similarity >= 0.5;
+    });
+
+    res = res.map((item) => {
+      const margin_kzt =
+        item.kaspi_price - item.price - 2000 - 0.15 * item.kaspi_price;
+      return {
+        ...item,
+        margin_kzt,
+        margin_percent: item.price ? (margin_kzt / item.price) * 100 : 100,
+      };
+    });
+
+    return await this.saveExcel(res);
+  }
+
+  async saveExcel(res: any) {
+    return await writeXlsxFile(res, {
+      schema: writeFileSchema,
+      buffer: true,
+    });
+  }
   async updateProduct(product_id: number, dto: ProductUpdateRequestDto) {
+    console.log(dto);
     const product = await ProductEntity.findOne({ where: { id: product_id } });
     product.kaspi_price = dto.kaspi_price;
     product.rating = dto.rating;
     product.kaspi_link = dto.kaspi_link;
     product.review_count = dto.review_count;
-    product.suppliers_array = dto.suppliers_array;
-    product.suppliers_count = dto.suppliers_count;
+    product.merchants_array = dto.merchants_array;
+    product.merchants_count = dto.merchants_count;
 
     try {
       await product.save();
@@ -200,5 +283,13 @@ export class KaspiService {
     }
 
     return product;
+  }
+
+  async deleteProduct(product_id: number) {
+    const product = await ProductEntity.findOne({ where: { id: product_id } });
+
+    if (!product) throw new BadRequestException('Product not found');
+
+    return await product.remove();
   }
 }

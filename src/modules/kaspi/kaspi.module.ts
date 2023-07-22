@@ -4,13 +4,10 @@ import { KaspiController } from './kaspi.controller';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FileEntity } from './entities/file.entity';
-import { ProductNameEntity } from './entities/product.entity';
+import { ProductEntity } from './entities/product.entity';
 
 @Module({
-  imports: [
-    HttpModule,
-    TypeOrmModule.forFeature([FileEntity, ProductNameEntity]),
-  ],
+  imports: [HttpModule, TypeOrmModule.forFeature([FileEntity, ProductEntity])],
   controllers: [KaspiController],
   providers: [KaspiService],
 })

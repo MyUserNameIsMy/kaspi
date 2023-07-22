@@ -14,8 +14,9 @@ export class FileEntity extends RootAbstractEntity {
   @Column({ type: 'enum', enum: FileStatusEnum, default: FileStatusEnum.NEW })
   status: FileStatusEnum;
 
-  @OneToMany(() => ProductEntity, (product) => product.file, {
-    onDelete: 'CASCADE',
-  })
-  product_names: ProductEntity[];
+  @Column({ type: 'int' })
+  product_found_count: number;
+
+  @OneToMany(() => ProductEntity, (product) => product.file)
+  products: ProductEntity[];
 }

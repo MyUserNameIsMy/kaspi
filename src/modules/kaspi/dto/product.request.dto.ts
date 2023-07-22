@@ -59,15 +59,13 @@ export class ProductUpdateRequestDto {
   })
   @IsInt({ message: 'Suppliers count must be an integer' })
   @IsOptional()
-  suppliers_count: number;
+  merchants_count: number;
 
   @ApiProperty({
     type: [String],
     description: 'Array of suppliers',
     nullable: true,
   })
-  @IsArray({ message: 'Suppliers array must be an array' })
-  @ArrayNotEmpty({ message: 'Suppliers array cannot be empty' })
   @IsOptional()
-  suppliers_array: string[];
+  merchants_array: string;
 }
