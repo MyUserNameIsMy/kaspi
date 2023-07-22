@@ -64,7 +64,7 @@ export class KaspiController {
     return await this.kaspiService.parseAndSave(file);
   }
 
-  @Patch('filter-file/:id')
+  @Get('filter-file/:id')
   async filterFile(@Param('id') file_id: number, @Res() res: Response) {
     try {
       const buffer = await this.kaspiService.filterFile(file_id);
