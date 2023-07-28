@@ -17,7 +17,7 @@ export class KaspiService {
   HEADERS = {
     'Content-Type': 'application/json',
     'User-Agent':
-      'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/111.0',
+      'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
     Referer: 'https://kaspi.kz/shop',
   };
   constructor(private readonly httpService: HttpService) {}
@@ -142,7 +142,9 @@ export class KaspiService {
   async findByName(name: string) {
     let product = null;
     try {
-      const URL = `https://kaspi.kz/yml/product-view/pl/filters?text=${name}`;
+      const URL = encodeURI(
+        `https://kaspi.kz/yml/product-view/pl/filters?text=${name}`,
+      );
       const res = await lastValueFrom(
         this.httpService.get(URL, { headers: this.HEADERS }),
       );
@@ -151,6 +153,7 @@ export class KaspiService {
       if (err.message.code === 'ETIMEDOUT') {
         Logger.error(`ETIMEDOUT for search${name}`);
       }
+      Logger.error(err.message);
     }
 
     if (!product) return null;
@@ -164,12 +167,6 @@ export class KaspiService {
     };
   }
   async findMerchants(kaspi_product_code: string) {
-    const headers = {
-      'Content-Type': 'application/json',
-      'User-Agent':
-        'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/111.0',
-      Referer: 'https://kaspi.kz/shop',
-    };
     const body = JSON.stringify({
       cityId: '750000000',
       sort: true,
@@ -182,7 +179,7 @@ export class KaspiService {
     try {
       const URL = `https://kaspi.kz/yml/offer-view/offers/${kaspi_product_code}`;
       const res = await lastValueFrom(
-        this.httpService.post(URL, body, { headers }),
+        this.httpService.post(URL, body, { headers: this.HEADERS }),
       );
       merchants.push(res.data?.offers);
       merchants_count = res.data?.offersCount;
