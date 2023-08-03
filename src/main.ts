@@ -11,6 +11,7 @@ async function bootstrap() {
   app.use(ResponseTimeMiddleware);
   app.setGlobalPrefix('api');
   const config = new DocumentBuilder()
+    .addBearerAuth()
     .setTitle('Kaspi Parser')
     .setVersion('1.0')
     .addTag('KASPI')

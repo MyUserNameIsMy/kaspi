@@ -3,11 +3,8 @@ import {
   Controller,
   Delete,
   Get,
-  Logger,
   Param,
-  Patch,
   Post,
-  Query,
   Res,
   UploadedFile,
   UseInterceptors,
@@ -63,9 +60,6 @@ export class KaspiController {
   ) {
     try {
       const buffer = await this.kaspiService.updateProducts(products);
-      Logger.debug(products);
-
-      // Set the appropriate headers for the response
       res.setHeader(
         'Content-Type',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -74,11 +68,8 @@ export class KaspiController {
         'Content-Disposition',
         `attachment; filename=${uuid()}.xlsx`,
       );
-
-      // Send the buffer as the response body
       res.send(buffer);
     } catch (error) {
-      // Handle errors and send an appropriate response
       res.status(500).send('Internal Server Error');
     }
   }
