@@ -31,14 +31,6 @@ export class KaspiController {
     return this.kaspiService.findAllFiles();
   }
 
-  @Get('file/:id')
-  async findOneById(
-    @Param('id') file_id: number,
-    @Query('product_id') product_id?: number,
-  ) {
-    return this.kaspiService.findOneById(file_id, product_id);
-  }
-
   @Delete('file/:id')
   async deleteFile(@Param('id') file_id: number) {
     return await this.kaspiService.deleteFile(file_id);
@@ -64,10 +56,14 @@ export class KaspiController {
     return await this.kaspiService.parseAndSave(file);
   }
 
-  @Get('filter-file/:id')
-  async filterFile(@Param('id') file_id: number, @Res() res: Response) {
+  @Post('update-products')
+  async filterFile(
+    @Body() products: ProductUpdateRequestDto[],
+    @Res() res: Response,
+  ) {
     try {
-      const buffer = await this.kaspiService.filterFile(file_id);
+      const buffer = await this.kaspiService.updateProducts(products);
+      Logger.debug(products);
 
       // Set the appropriate headers for the response
       res.setHeader(
@@ -85,15 +81,6 @@ export class KaspiController {
       // Handle errors and send an appropriate response
       res.status(500).send('Internal Server Error');
     }
-  }
-
-  @Patch('select-product/:id')
-  async updateProduct(
-    @Param('id') product_id: number,
-    @Body() dto: ProductUpdateRequestDto,
-  ) {
-    Logger.debug(dto);
-    return this.kaspiService.updateProduct(product_id, dto);
   }
 
   @Delete('delete-product/:id')

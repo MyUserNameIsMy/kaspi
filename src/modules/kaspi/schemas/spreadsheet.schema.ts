@@ -43,4 +43,16 @@ export const writeFileSchema = [
     type: Number,
     value: (product) => product.margin_kzt,
   },
+
+  {
+    column: 'Рейтинг',
+    type: Number,
+    value: (product) => product.rating,
+  },
+
+  {
+    column: 'Количество отзывов',
+    type: Number,
+    value: (product) => product.review_count,
+  },
 ];

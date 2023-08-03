@@ -5,10 +5,19 @@ import { FileEntity } from './file.entity';
 @Entity('products')
 export class ProductEntity extends RootAbstractEntity {
   @Column()
-  name: string;
+  search_name: string;
+
+  @Column({ nullable: true })
+  kaspi_name: string;
 
   @Column({ type: 'float', nullable: true })
   kaspi_price: number;
+
+  @Column({ nullable: true })
+  kaspi_id: number;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  created_time: Date;
 
   @Column({ type: 'int', nullable: true })
   rating: number;

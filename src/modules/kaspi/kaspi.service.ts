@@ -9,7 +9,6 @@ import {
 import { FileEntity } from './entities/file.entity';
 import { ProductEntity } from './entities/product.entity';
 import { ProductUpdateRequestDto } from './dto/product.request.dto';
-import * as distance from 'jaro-winkler';
 import writeXlsxFile from 'write-excel-file/node';
 
 @Injectable()
@@ -79,42 +78,42 @@ export class KaspiService {
     return await file.remove();
   }
 
-  async findOneById(file_id: number, product_id = 1) {
-    if (product_id == -1) return { message: 'Finished' };
-    const product_names = await ProductEntity.find({
-      relations: ['file'],
-      where: {
-        file: { id: file_id },
-      },
-      order: {
-        id: 'ASC',
-      },
-      select: ['id'],
-    });
-
-    const current_id = this.findNumberOrClosestNext(
-      product_names.map((item) => item.id),
-      product_id,
-    );
-
-    let next_id = this.findClosestNextValue(
-      product_names.map((item) => item.id),
-      current_id,
-    );
-
-    if (next_id === current_id) next_id = -1;
-
-    const entry = await ProductEntity.findOne({
-      where: { id: current_id },
-    });
-
-    const product = await this.getProduct(entry.name);
-    return {
-      product,
-      entry,
-      next_id,
-    };
-  }
+  // async findOneById(file_id: number, product_id = 1) {
+  //   if (product_id == -1) return { message: 'Finished' };
+  //   const product_names = await ProductEntity.find({
+  //     relations: ['file'],
+  //     where: {
+  //       file: { id: file_id },
+  //     },
+  //     order: {
+  //       id: 'ASC',
+  //     },
+  //     select: ['id'],
+  //   });
+  //
+  //   const current_id = this.findNumberOrClosestNext(
+  //     product_names.map((item) => item.id),
+  //     product_id,
+  //   );
+  //
+  //   let next_id = this.findClosestNextValue(
+  //     product_names.map((item) => item.id),
+  //     current_id,
+  //   );
+  //
+  //   if (next_id === current_id) next_id = -1;
+  //
+  //   const entry = await ProductEntity.findOne({
+  //     where: { id: current_id },
+  //   });
+  //
+  //   const product = await this.getProduct(entry.name);
+  //   return {
+  //     product,
+  //     entry,
+  //     next_id,
+  //   };
+  // }
 
   async getProduct(name: string) {
     const search_result_by_name = await this.findByName(name);
@@ -216,7 +215,7 @@ export class KaspiService {
 
     names.forEach((item) => {
       const product = new ProductEntity();
-      product.name = item.name;
+      product.search_name = item.name;
       product.price = item.price;
       product.file = fileEntity;
       products.push(product);
@@ -225,36 +224,23 @@ export class KaspiService {
     return await ProductEntity.save(products);
   }
 
-  async filterFile(file_id: number) {
-    const file = await this.findOne(file_id);
-    let res = [];
-
-    for (const item of file?.products) {
-      const product = await this.findByName(item.name);
-      product['price'] = item.price;
-      product['product_id'] = item.id;
-      res.push(product);
-    }
-
-    res.filter((item) => {
-      if (!item) return false;
-      const similarity = distance(item.kaspi_name, item.search_name, {
-        caseSensitive: false,
+  async updateProducts(productsDto: ProductUpdateRequestDto[]) {
+    const products = [];
+    for (const item of productsDto) {
+      const product = await ProductEntity.findOne({
+        where: { id: item.product_id },
       });
-      return similarity >= 0.5;
-    });
-
-    res = res.map((item) => {
-      const margin_kzt =
-        item.kaspi_price - item.price - 2000 - 0.15 * item.kaspi_price;
-      return {
-        ...item,
-        margin_kzt,
-        margin_percent: item.price ? (margin_kzt / item.price) * 100 : 100,
-      };
-    });
-
-    return await this.saveExcel(res);
+      product.kaspi_id = item.kaspi_id;
+      product.kaspi_name = item.kaspi_name;
+      product.kaspi_price = item.kaspi_price;
+      product.kaspi_link = item.kaspi_link;
+      product.review_count = item.review_count;
+      product.rating = item.rating;
+      product.created_time = item.created_time;
+      products.push(product);
+    }
+    await ProductEntity.save(products);
+    return await this.saveExcel(products);
   }
 
   async saveExcel(res: any) {
@@ -263,24 +249,24 @@ export class KaspiService {
       buffer: true,
     });
   }
-  async updateProduct(product_id: number, dto: ProductUpdateRequestDto) {
-    console.log(dto);
-    const product = await ProductEntity.findOne({ where: { id: product_id } });
-    product.kaspi_price = dto.kaspi_price;
-    product.rating = dto.rating;
-    product.kaspi_link = dto.kaspi_link;
-    product.review_count = dto.review_count;
-    product.merchants_array = dto.merchants_array;
-    product.merchants_count = dto.merchants_count;
-
-    try {
-      await product.save();
-    } catch (err) {
-      throw new BadRequestException(err.message);
-    }
-
-    return product;
-  }
+  // async updateProduct(product_id: number, dto: ProductUpdateRequestDto) {
+  //   console.log(dto);
+  //   const product = await ProductEntity.findOne({ where: { id: product_id } });
+  //   product.kaspi_price = dto.kaspi_price;
+  //   product.rating = dto.rating;
+  //   product.kaspi_link = dto.kaspi_link;
+  //   product.review_count = dto.review_count;
+  //   product.merchants_array = dto.merchants_array;
+  //   product.merchants_count = dto.merchants_count;
+  //
+  //   try {
+  //     await product.save();
+  //   } catch (err) {
+  //     throw new BadRequestException(err.message);
+  //   }
+  //
+  //   return product;
+  // }
 
   async deleteProduct(product_id: number) {
     const product = await ProductEntity.findOne({ where: { id: product_id } });
