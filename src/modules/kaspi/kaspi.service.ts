@@ -162,8 +162,8 @@ export class KaspiService {
       product.created_time = item.created_time;
       products.push(product);
     }
-    await ProductEntity.save(productsDto);
-    return await this.saveExcel(products);
+    await ProductEntity.save(products);
+    return await this.saveExcel(productsDto);
   }
 
   async saveExcel(res: any) {
