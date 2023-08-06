@@ -147,6 +147,7 @@ export class KaspiService {
   }
 
   async updateProducts(productsDto: ProductUpdateRequestDto[]) {
+    console.table(productsDto);
     const products = [];
     for (const item of productsDto) {
       const product = await ProductEntity.findOne({
@@ -161,11 +162,12 @@ export class KaspiService {
       product.created_time = item.created_time;
       products.push(product);
     }
-    await ProductEntity.save(products);
+    await ProductEntity.save(productsDto);
     return await this.saveExcel(products);
   }
 
   async saveExcel(res: any) {
+    console.table(res);
     return await writeXlsxFile(res, {
       schema: writeFileSchema,
       buffer: true,
