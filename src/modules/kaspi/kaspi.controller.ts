@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Res,
   UploadedFile,
   UseInterceptors,
@@ -15,7 +16,10 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { v4 as uuid } from 'uuid';
-import { ProductUpdateRequestDto } from './dto/product.request.dto';
+import {
+  ParsedProductCreateReqDto,
+  ProductUpdateReqDto,
+} from './dto/product.request.dto';
 import { Response } from 'express';
 
 @ApiTags('kaspi')
@@ -38,7 +42,16 @@ export class KaspiController {
     return this.kaspiService.findOne(file_id);
   }
 
-  @Post('parse-excel-and-save')
+  @Get('file/:id')
+  async findOneProduct(
+    @Param('id') file_id: number,
+    @Query('product_id') product_id: number,
+  ) {
+    console.log('Created');
+    return this.kaspiService.findOneById(file_id, product_id);
+  }
+
+  @Post('save-parsed-products')
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -49,13 +62,19 @@ export class KaspiController {
       }),
     }),
   )
-  async parseExcelAndSave(@UploadedFile() file: Express.Multer.File) {
-    return await this.kaspiService.parseAndSave(file);
+  async saveParsedProducts(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('parsed_products') parsed_products: ParsedProductCreateReqDto[],
+  ) {
+    return await this.kaspiService.saveParsedProducts(
+      file,
+      JSON.parse(parsed_products.toString()),
+    );
   }
 
   @Post('update-products')
   async filterFile(
-    @Body() products: ProductUpdateRequestDto[],
+    @Body() products: ProductUpdateReqDto[],
     @Res() res: Response,
   ) {
     try {

@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
-export class ProductUpdateRequestDto {
+export class ProductUpdateReqDto {
   @ApiProperty()
   @IsNumber()
   product_id: number;
@@ -54,4 +54,14 @@ export class ProductUpdateRequestDto {
   @IsOptional()
   @IsString()
   kaspi_link: string;
+}
+
+export class ParsedProductCreateReqDto {
+  @ApiProperty()
+  @IsString()
+  name: string;
+
+  @ApiProperty()
+  @IsNumber()
+  price: number;
 }

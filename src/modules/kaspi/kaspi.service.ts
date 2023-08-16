@@ -1,13 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import readXlsxFile from 'read-excel-file/node';
-import {
-  spreadsheetSchema,
-  writeFileSchema,
-} from './schemas/spreadsheet.schema';
+import { writeFileSchema } from './schemas/spreadsheet.schema';
 import { FileEntity } from './entities/file.entity';
 import { ProductEntity } from './entities/product.entity';
-import { ProductUpdateRequestDto } from './dto/product.request.dto';
+import {
+  ParsedProductCreateReqDto,
+  ProductUpdateReqDto,
+} from './dto/product.request.dto';
 import writeXlsxFile from 'write-excel-file/node';
+import {
+  findClosestNextValue,
+  findNumberOrClosestNext,
+} from '../../common/utils/helper.util';
 
 @Injectable()
 export class KaspiService {
@@ -28,42 +31,43 @@ export class KaspiService {
     return await file.remove();
   }
 
-  // async findOneById(file_id: number, product_id = 1) {
-  //   if (product_id == -1) return { message: 'Finished' };
-  //   const product_names = await ProductEntity.find({
-  //     relations: ['file'],
-  //     where: {
-  //       file: { id: file_id },
-  //     },
-  //     order: {
-  //       id: 'ASC',
-  //     },
-  //     select: ['id'],
-  //   });
-  //
-  //   const current_id = this.findNumberOrClosestNext(
-  //     product_names.map((item) => item.id),
-  //     product_id,
-  //   );
-  //
-  //   let next_id = this.findClosestNextValue(
-  //     product_names.map((item) => item.id),
-  //     current_id,
-  //   );
-  //
-  //   if (next_id === current_id) next_id = -1;
-  //
-  //   const entry = await ProductEntity.findOne({
-  //     where: { id: current_id },
-  //   });
-  //
-  //   const product = await this.getProduct(entry.name);
-  //   return {
-  //     product,
-  //     entry,
-  //     next_id,
-  //   };
-  // }
+  async findOneById(file_id: number, product_id = 1) {
+    if (product_id == -1) return { message: 'Finished' };
+    const product_names = await ProductEntity.find({
+      relations: ['file'],
+      where: {
+        file: { id: file_id },
+      },
+      order: {
+        id: 'ASC',
+      },
+      select: ['id'],
+    });
+
+    console.table(product_names);
+
+    const current_id = findNumberOrClosestNext(
+      product_names.map((item) => item.id),
+      product_id,
+    );
+
+    let next_id = findClosestNextValue(
+      product_names.map((item) => item.id),
+      current_id,
+    );
+
+    if (next_id === current_id) next_id = -1;
+
+    const entry = await ProductEntity.findOne({
+      where: { id: current_id },
+    });
+
+    console.table(entry);
+    return {
+      entry,
+      next_id,
+    };
+  }
 
   // async getProduct(name: string) {
   //   const search_result_by_name = await this.findByName(name);
@@ -111,31 +115,19 @@ export class KaspiService {
   //   }
   //   return { merchants_count, merchants: merchants.flat() };
   // }
-  async parse(file: Express.Multer.File) {
-    const res = [];
-    await readXlsxFile(file.path, {
-      schema: spreadsheetSchema,
-      transformData(data) {
-        return data.filter(
-          (row) => row.filter((column) => column !== null).length > 0,
-        );
-      },
-    }).then(({ rows }) => {
-      res.push(...rows);
-    });
-    return res;
-  }
-  async parseAndSave(file: Express.Multer.File) {
-    const names = await this.parse(file);
-
+  async saveParsedProducts(
+    file: Express.Multer.File,
+    parsed_products: ParsedProductCreateReqDto[],
+  ) {
+    console.table(parsed_products);
     const fileEntity = new FileEntity();
     fileEntity.path = `./uploads/${file.filename}`;
     fileEntity.filename = file.originalname;
-    fileEntity.product_found_count = names.length;
+    fileEntity.product_found_count = parsed_products.length;
     await fileEntity.save();
     const products: ProductEntity[] = [];
 
-    names.forEach((item) => {
+    parsed_products.forEach((item) => {
       const product = new ProductEntity();
       product.search_name = item.name;
       product.price = item.price;
@@ -146,7 +138,7 @@ export class KaspiService {
     return await ProductEntity.save(products);
   }
 
-  async updateProducts(productsDto: ProductUpdateRequestDto[]) {
+  async updateProducts(productsDto: ProductUpdateReqDto[]) {
     console.table(productsDto);
     const products = [];
     for (const item of productsDto) {
