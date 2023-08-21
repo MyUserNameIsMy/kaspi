@@ -9,27 +9,32 @@ export const spreadsheetSchema = {
 
 export const writeFileSchema = [
   {
-    column: 'Product search name',
+    column: 'Наименование продукта при поиске',
     type: String,
     value: (product) => product.search_name,
   },
   {
-    column: 'Product kaspi name',
+    column: 'Наименование продукта в каспи',
     type: String,
     value: (product) => product.kaspi_name,
   },
   {
-    column: 'Kaspi price',
+    column: 'Цена поставщика',
+    type: Number,
+    value: (product) => product.price,
+  },
+  {
+    column: 'Цена в каспи',
     type: Number,
     value: (product) => product.kaspi_price,
   },
   {
-    column: 'Kaspi id',
+    column: 'Каспи Код',
     type: String,
     value: (product) => product.kaspi_id,
   },
   {
-    column: 'Kaspi link',
+    column: 'Каспи ссылка',
     type: String,
     value: (product) => product.kaspi_link,
   },
