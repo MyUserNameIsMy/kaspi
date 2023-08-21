@@ -15,7 +15,11 @@ import {
 @Injectable()
 export class KaspiService {
   async findAllFiles() {
-    return await FileEntity.find();
+    return await FileEntity.find({
+      order: {
+        created_at: 'DESC',
+      },
+    });
   }
 
   async findOne(file_id: number) {
