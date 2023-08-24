@@ -156,6 +156,7 @@ export class KaspiService {
       product.review_count = item.review_count;
       product.rating = item.rating;
       product.created_time = item.created_time;
+      product.merchants_count = item.merchants_count;
       products.push(product);
     }
     await ProductEntity.save(products);

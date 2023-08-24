@@ -54,6 +54,11 @@ export class ProductUpdateReqDto {
   @IsOptional()
   @IsString()
   kaspi_link: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsNumber()
+  merchants_count: number;
 }
 
 export class ParsedProductCreateReqDto {

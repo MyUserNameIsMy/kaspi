@@ -60,4 +60,10 @@ export const writeFileSchema = [
     type: Number,
     value: (product) => product.review_count,
   },
+
+  {
+    column: 'Количество продавцов',
+    type: Number,
+    value: (product) => product.merchants_count,
+  },
 ];
