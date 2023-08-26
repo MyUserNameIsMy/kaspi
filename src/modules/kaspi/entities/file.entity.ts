@@ -1,7 +1,8 @@
 import { RootAbstractEntity } from '../../../database/entities/root-abstract.entity';
-import { Column, Entity, OneToMany } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 import { ProductEntity } from './product.entity';
 import { FileStatusEnum } from '../../../common/enums/file-status.enum';
+import { UserEntity } from '../../user/entities/user.entity';
 
 @Entity('files')
 export class FileEntity extends RootAbstractEntity {
@@ -19,4 +20,7 @@ export class FileEntity extends RootAbstractEntity {
 
   @OneToMany(() => ProductEntity, (product) => product.file)
   products: ProductEntity[];
+
+  @ManyToOne(() => UserEntity, (user) => user.files)
+  user: UserEntity;
 }

@@ -6,12 +6,14 @@ import {
   Param,
   Post,
   Query,
+  Request,
   Res,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { KaspiService } from './kaspi.service';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -21,15 +23,18 @@ import {
   ProductUpdateReqDto,
 } from './dto/product.request.dto';
 import { Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('kaspi')
 @Controller('kaspi')
 export class KaspiController {
   constructor(private readonly kaspiService: KaspiService) {}
 
+  @UseGuards(AuthGuard('jwt-user'))
+  @ApiBearerAuth()
   @Get()
-  async findAllFiles() {
-    return this.kaspiService.findAllFiles();
+  async findAllFiles(@Request() req) {
+    return this.kaspiService.findAllFiles(req.user.id);
   }
 
   @Delete('file/:id')
@@ -51,6 +56,8 @@ export class KaspiController {
     return this.kaspiService.findOneById(file_id, product_id);
   }
 
+  @UseGuards(AuthGuard('jwt-user'))
+  @ApiBearerAuth()
   @Post('save-parsed-products')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -63,10 +70,12 @@ export class KaspiController {
     }),
   )
   async saveParsedProducts(
+    @Request() req,
     @UploadedFile() file: Express.Multer.File,
     @Body('parsed_products') parsed_products: ParsedProductCreateReqDto[],
   ) {
     return await this.kaspiService.saveParsedProducts(
+      req.user.id,
       file,
       JSON.parse(parsed_products.toString()),
     );

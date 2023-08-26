@@ -1,7 +1,8 @@
 import { RootAbstractEntity } from '../../../database/entities/root-abstract.entity';
-import { BeforeInsert, Column, Entity } from 'typeorm';
+import { BeforeInsert, Column, Entity, OneToMany } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { AccountStatusEnum } from '../../../common/enums/account-status.enum';
+import { FileEntity } from '../../kaspi/entities/file.entity';
 
 @Entity('users')
 export class UserEntity extends RootAbstractEntity {
@@ -17,6 +18,9 @@ export class UserEntity extends RootAbstractEntity {
     default: AccountStatusEnum.INACTIVE,
   })
   account_status: AccountStatusEnum;
+
+  @OneToMany(() => FileEntity, (file) => file.user)
+  files: FileEntity[];
 
   @BeforeInsert()
   async setPassword(password: string) {

@@ -11,11 +11,18 @@ import {
   findClosestNextValue,
   findNumberOrClosestNext,
 } from '../../common/utils/helper.util';
+import { UserEntity } from '../user/entities/user.entity';
 
 @Injectable()
 export class KaspiService {
-  async findAllFiles() {
+  async findAllFiles(user_id: number) {
     return await FileEntity.find({
+      relations: ['user'],
+      where: {
+        user: {
+          id: user_id,
+        },
+      },
       order: {
         created_at: 'DESC',
       },
@@ -120,11 +127,13 @@ export class KaspiService {
   //   return { merchants_count, merchants: merchants.flat() };
   // }
   async saveParsedProducts(
+    user_id: number,
     file: Express.Multer.File,
     parsed_products: ParsedProductCreateReqDto[],
   ) {
     console.table(parsed_products);
     const fileEntity = new FileEntity();
+    fileEntity.user = await UserEntity.findOne({ where: { id: user_id } });
     fileEntity.path = `./uploads/${file.filename}`;
     fileEntity.filename = file.originalname;
     fileEntity.product_found_count = parsed_products.length;
