@@ -152,7 +152,6 @@ export class KaspiService {
   }
 
   async updateProducts(productsDto: ProductUpdateReqDto[]) {
-    console.table(productsDto);
     const products = [];
     for (const item of productsDto) {
       const product = await ProductEntity.findOne({
@@ -168,12 +167,16 @@ export class KaspiService {
       product.merchants_count = item.merchants_count;
       products.push(product);
     }
-    await ProductEntity.save(products);
+    try {
+      await ProductEntity.save(products, { chunk: 10 });
+    } catch (e) {
+      console.error(e.message);
+    }
+
     return await this.saveExcel(productsDto);
   }
 
   async saveExcel(res: any) {
-    console.table(res);
     return await writeXlsxFile(res, {
       schema: writeFileSchema,
       buffer: true,

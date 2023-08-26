@@ -19,7 +19,7 @@ export class ProductEntity extends RootAbstractEntity {
   @Column({ type: 'timestamptz', nullable: true })
   created_time: Date;
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ type: 'float', nullable: true })
   rating: number;
 
   @Column({ type: 'int', nullable: true })
