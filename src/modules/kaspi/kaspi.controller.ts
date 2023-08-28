@@ -64,9 +64,11 @@ export class KaspiController {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
+          console.log(file);
           cb(null, `${uuid()}${extname(file.originalname)}`);
         },
       }),
+      limits: { fieldSize: 25 * 1024 * 1024 },
     }),
   )
   async saveParsedProducts(
@@ -74,6 +76,7 @@ export class KaspiController {
     @UploadedFile() file: Express.Multer.File,
     @Body('parsed_products') parsed_products: ParsedProductCreateReqDto[],
   ) {
+    console.log('size');
     return await this.kaspiService.saveParsedProducts(
       req.user.id,
       file,

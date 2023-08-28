@@ -10,8 +10,8 @@ async function bootstrap() {
   app.enableCors();
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
   app.use(ResponseTimeMiddleware);
-  app.use(json({ limit: '1000mb' }));
-  app.use(urlencoded({ extended: true, limit: '1000mb' }));
+  app.use(json({ limit: '100mb' }));
+  app.use(urlencoded({ extended: true, limit: '100mb' }));
   app.setGlobalPrefix('api');
   const config = new DocumentBuilder()
     .addBearerAuth()
