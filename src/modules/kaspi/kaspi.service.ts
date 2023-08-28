@@ -148,7 +148,7 @@ export class KaspiService {
       products.push(product);
     });
 
-    return await ProductEntity.save(products);
+    return await ProductEntity.save(products, { chunk: 100 });
   }
 
   async updateProducts(productsDto: ProductUpdateReqDto[]) {
